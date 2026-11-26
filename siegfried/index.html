@@ -1,0 +1,183 @@
+<title>Siegfried Expander Plots</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<style>
+/* Layout: one reading column; the rules as two panels side by side; each album a table that scrolls sideways on a
+   phone; a plot opens in a full-window viewer with previous and next. Works offline from the folder. */
+:root {
+  --ground: #f7f5f0; --surface: #ffffff; --line: #e2dacb; --ink: #1b1a17; --muted: #5d574c;
+  --gold: #79521a; --gold-tint: #efe5d2; --grey: #7d828b; --orange: #c75f12; --red: #b3261e; --veil: rgba(20, 18, 14, 0.86);
+  --sans: "IBM Plex Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Consolas, "SF Mono", monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground: #171719; --surface: #222225; --line: #3b3b40; --ink: #f5f3ee; --muted: #b7b5b0;
+    --gold: #d3a957; --gold-tint: #332c20; --grey: #9aa0a8; --orange: #f08a3c; --red: #f04438; --veil: rgba(8, 8, 9, 0.9);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --ground: #171719; --surface: #222225; --line: #3b3b40; --ink: #f5f3ee; --muted: #b7b5b0;
+  --gold: #d3a957; --gold-tint: #332c20; --grey: #9aa0a8; --orange: #f08a3c; --red: #f04438; --veil: rgba(8, 8, 9, 0.9);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--ground); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 56px;
+}
+.wrap { max-width: 1060px; margin: 0 auto; display: grid; gap: 34px; }
+h1, h2, h3 { margin: 0; text-wrap: balance; font-weight: 600; letter-spacing: -0.01em; }
+h1 { font-size: 30px; line-height: 1.15; }
+h2 { font-size: 20px; }
+h3 { font-size: 16px; }
+p { margin: 0; max-width: 68ch; }
+section { display: grid; gap: 12px; }
+.eyebrow { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 500; }
+header { display: grid; gap: 10px; }
+.read { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; display: grid; gap: 4px; min-width: 0; }
+.card b { font-weight: 600; }
+.card span { color: var(--muted); font-size: 14px; }
+.rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 18px 20px; display: grid; gap: 10px; align-content: start; min-width: 0; }
+.panel ul { margin: 0; padding-left: 18px; display: grid; gap: 7px; }
+.num { font-family: var(--mono); font-size: 0.93em; }
+.verdict { border-left: 3px solid var(--gold); padding: 4px 0 4px 14px; display: grid; gap: 6px; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 14px; color: var(--muted); align-items: center; }
+.sw { display: inline-block; width: 18px; height: 10px; border-radius: 2px; vertical-align: middle; margin-right: 6px; }
+.sw.g { background: var(--grey); } .sw.o { background: var(--orange); }
+.sw.r { border-top: 2px dashed var(--red); height: 0; width: 20px; border-radius: 0; }
+nav.albums { display: flex; flex-wrap: wrap; gap: 8px; }
+nav.albums a { text-decoration: none; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; font-size: 14px; }
+nav.albums a:hover, nav.albums a:focus-visible { border-color: var(--gold); outline: none; }
+.album { display: grid; gap: 10px; scroll-margin-top: 16px; }
+.ahead { display: grid; gap: 2px; }
+.rule { color: var(--muted); font-size: 14px; }
+.scroll { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th { text-align: right; font-weight: 500; color: var(--muted); font-size: 12px; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: bottom; line-height: 1.3; }
+th:first-child, td.t { text-align: left; }
+td { padding: 8px 12px; border-bottom: 1px solid var(--line); text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+td.t { font-family: var(--sans); white-space: normal; min-width: 160px; }
+tr:last-child td { border-bottom: 0; }
+td.l { text-align: left; }
+button.plot { font: 500 13px var(--sans); color: var(--gold); background: var(--gold-tint); border: 0; border-radius: 6px; padding: 4px 10px; margin: 1px 4px 1px 0; cursor: pointer; }
+button.plot:hover { text-decoration: underline; }
+button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+footer { color: var(--muted); font-size: 13px; }
+/* the viewer */
+.viewer { position: fixed; inset: 0; z-index: 20; background: var(--veil); display: grid; grid-template-rows: auto 1fr; }
+.viewer[hidden] { display: none; }
+.vbar { display: flex; align-items: center; gap: 8px; padding: calc(10px + env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px)) 10px max(12px, env(safe-area-inset-left, 0px)); background: var(--surface); border-bottom: 1px solid var(--line); }
+.vbar .vt { flex: 1; min-width: 0; font-size: 14px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vbar button { font: 500 14px var(--sans); color: var(--ink); background: var(--ground); border: 1px solid var(--line); border-radius: 6px; padding: 6px 12px; cursor: pointer; }
+.vbody { overflow: auto; display: grid; justify-items: center; align-items: start; padding: 12px max(12px, env(safe-area-inset-right, 0px)) calc(12px + env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px)); }
+.vbody img { width: 100%; max-width: 990px; height: auto; background: #ffffff; border-radius: 4px; }
+.vbody.zoom img { width: 200%; max-width: none; }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+</style>
+<style>
+figure { margin: 0; display: grid; gap: 8px; }
+figure a { display: block; }
+figure img { width: 100%; max-width: 990px; height: auto; background: #ffffff; border-radius: 6px; border: 1px solid var(--line); }
+figcaption { color: var(--muted); font-size: 14px; max-width: 75ch; }
+.sw.b { border-top: 2px dotted #2f6db5; height: 0; width: 20px; border-radius: 0; }
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">PGGB Dynamic Range Expander · preview</span>
+    <h1>Siegfried: the 2022 remaster and the 1984 CD</h1>
+    <p>Two releases of the same recording: Solti's <i>Siegfried</i>, Act III, "Ewig war ich". The 2022 remaster is 192 kHz, 24-bit; the CD is 44.1 kHz, 16-bit. Here is what PGGB's Dynamic Range Expander does with each, on its default settings.</p>
+  </header>
+
+  <section>
+    <h2>What the Expander found</h2>
+    <div class="rules">
+      <div class="panel">
+        <h3>The 2022 remaster</h3>
+        <ul>
+          <li><b>Clipping at -0.35 dBFS</b> on both channels, on the positive and the negative peaks. The flat tops were smoothed by a filter after the clipping, so they ripple a little instead of being perfectly flat. The Expander still finds them.</li>
+          <li><b>All 4,055 clipped runs rebuilt</b> (68,019 samples). The tallest rebuilt peak rises 5.8 dB above the clip level, inside the Expander's 6 dB limit.</li>
+          <li><b>60,799 samples changed</b>, 0.02 % of the track. Every other sample is exactly as it was.</li>
+          <li><b>The de-limiter steps aside</b>, as it does on every track that declip repaired. The remaster keeps its loudness: 6.6 dB louder than the CD.</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h3>The 1984 CD</h3>
+        <ul>
+          <li><b>No clipping found.</b> The Expander leaves the CD exactly as it is: not one sample changes.</li>
+          <li><b>DR 13</b>, the most dynamic of the three versions.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="verdict">
+      <p><b>Against the CD:</b> at the remaster's two largest repairs, the 1984 CD's own peaks, at the same moment and the same loudness, stand 0.6 dB (left) and 0.8 dB (right) above the Expander's rebuilt ones. The remaster's clipped tops stop 4.7 and 6.6 dB below them.</p>
+      <p><b>DR</b> is the usual dynamic range value, as a DR meter reads it: the peaks against the loudest passages' average. Higher means more dynamic. The remaster goes from <b>DR 7 to DR 11</b> with the Expander; the CD is DR 13.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>The numbers</h2>
+    <div class="scroll">
+      <table>
+        <tr><th>Release</th><th>Format</th><th>Loudness</th><th>Peak</th><th>DR as it is</th><th>DR expanded</th><th>Samples changed</th></tr>
+        <tr><td class="t">2022 remaster</td><td>192 kHz, 24-bit</td><td>-10.5 LUFS</td><td>-0.32 dBFS</td><td>7</td><td>11</td><td>60,799</td></tr>
+        <tr><td class="t">1984 CD</td><td>44.1 kHz, 16-bit</td><td>-17.1 LUFS</td><td>-0.23 dBFS</td><td>13</td><td>13</td><td>0</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Reading the plots</h2>
+    <div class="read">
+      <div class="card"><b>Grey: as it is</b><span>The release as it is.</span></div>
+      <div class="card"><b>Orange: expanded</b><span>The same release through the Expander. Wherever orange shows, the Expander changed the waveform.</span></div>
+      <div class="card"><b>Red dashes: full scale</b><span>0 dBFS, the highest level a recording can store.</span></div>
+    </div>
+    <p>The 16fS plots show each version upsampled by PGGB's Precision Optimized Engine. When it upsamples, PGGB turns each version down so its peaks stay under full scale; the plots undo that so the versions line up. A plot opens full size when you tap it.</p>
+  </section>
+
+  <section>
+    <h2>The 2022 remaster at 192 kHz, before and after</h2>
+    <figure>
+      <a href="img/1_2022_192k_before_after.png"><img src="img/1_2022_192k_before_after.png" alt="The 2022 remaster at 192 kHz, before and after" loading="lazy"></a>
+      <figcaption>Each channel: the whole track, then a close-up of the Expander's largest repair, sample by sample. Grey is the remaster as it is, orange is what the Expander made of it.</figcaption>
+    </figure>
+  </section>
+  <section>
+    <h2>The 2022 remaster at 16fS (768 kHz)</h2>
+    <figure>
+      <a href="img/2_2022_16fs.png"><img src="img/2_2022_16fs.png" alt="The 2022 remaster at 16fS (768 kHz)" loading="lazy"></a>
+      <figcaption>Both versions upsampled by PGGB's Precision Optimized Engine, each put back on the remaster's own level. The close-up shows the largest repair at 16fS: the clipped top (grey) and the rebuilt peak (orange). The dots are the remaster's own 192 kHz samples.</figcaption>
+    </figure>
+  </section>
+  <section>
+    <h2>The 1984 CD at 16fS (705.6 kHz)</h2>
+    <figure>
+      <a href="img/3_1984cd_16fs.png"><img src="img/3_1984cd_16fs.png" alt="The 1984 CD at 16fS (705.6 kHz)" loading="lazy"></a>
+      <figcaption>The CD upsampled the same way: the whole track, then its highest peak, with the CD's own 44.1 kHz samples as dots. The Expander finds nothing to repair here and leaves the CD exactly as it is.</figcaption>
+    </figure>
+  </section>
+  <section>
+    <h2>All three at the same loudness</h2>
+    <figure>
+      <a href="img/4_three_same_loudness.png"><img src="img/4_three_same_loudness.png" alt="All three at the same loudness" loading="lazy"></a>
+      <figcaption>The left channel of each version over the whole track, at 16fS, with the remaster turned down 6.6 dB to the CD's loudness and the CD lined up with the remaster in time. The blue dotted lines mark the remaster's clip level at this loudness.</figcaption>
+    </figure>
+  </section>
+  <section>
+    <h2>The largest repairs, and the CD at the same moment</h2>
+    <figure>
+      <a href="img/5_same_moment_on_the_cd.png"><img src="img/5_same_moment_on_the_cd.png" alt="The largest repairs, and the CD at the same moment" loading="lazy"></a>
+      <figcaption>Each channel's largest repair at 16fS: the remaster as it is (grey), expanded (orange), and the 1984 CD at the same moment (blue dashes), lined up in time, brought to the remaster's loudness and turned over (the two releases have opposite polarity). Away from the clipped top the two releases follow each other closely. Where the remaster is clipped flat, the CD's peak rises to +4.4 dB (left) and +6.3 dB (right); the Expander's rebuilt peaks reach +3.8 and +5.5 dB. The CD has no clipping here, so it shows how tall these peaks are on a release without it.</figcaption>
+    </figure>
+  </section>
+
+  <footer>The counts, levels and peaks are measured from the audio itself. Loudness is integrated loudness (LUFS); peaks are sample peaks.</footer>
+</div>
